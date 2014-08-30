@@ -32,13 +32,10 @@ namespace POP
 		
 		public static string AddHeader(bool flag, string s)
 		{
-			var sb = new StringBuilder(s);
-			var header =  flag ? "+OK" : "-ERR";
+			var header =  flag ? "+OK " : "-ERR ";
+			s.Insert(0, header);
 			
-			sb.Insert(0, " ", 1);
-			sb.Insert(0, header, 1);
-			
-			return sb.ToString();
+			return s;
 		}
 	}
 }
