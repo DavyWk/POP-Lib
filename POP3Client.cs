@@ -59,10 +59,10 @@ namespace POP
 		{
 			get
 			{
-				if(client.Client != null)
+				if((client != null) && (client.Client != null))
 					return client.Client.Connected;
 				else
-					throw new ObjectDisposedException("client");
+					return false;
 			}
 		}
 		
