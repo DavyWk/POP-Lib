@@ -364,7 +364,10 @@ namespace POP
 			date = MailParsingUtils.RemoveParenthesisEnding(date);
 			date = MailParsingUtils.RemoveCharEnding(date);
 			
-			return DateTime.Parse(date);
+			DateTime dt;
+			DateTime.TryParse(date, out dt);
+			
+			return dt;
 		}
 		
 		private Encoding GetEncoding(string s)
