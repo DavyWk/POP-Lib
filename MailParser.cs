@@ -53,6 +53,8 @@ namespace POP
 			m.Subject = MailParsingUtils.CompleteSubject(m.Subject);
 			if(m.CharSet == null)
 				m.CharSet = Encoding.UTF8;
+			if(m.ID == string.Empty)
+				m.ID =  "NO ID";
 			if(m.Receivers == null)
 			{
 				m.Receivers = new List<Person>();
@@ -144,6 +146,7 @@ namespace POP
 				return null;
 			// +2: Also remove the space.
 			s = s.Remove(0, index + 2);
+			index = 0;
 			
 			// Handles multiple receivers.
 			var nextLine = lines[++offset];

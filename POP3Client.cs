@@ -110,6 +110,7 @@ namespace POP
 		}
 		
 		#region Implementing IDisposable
+		
 		public void Close()
 		{
 			Dispose();
@@ -158,12 +159,12 @@ namespace POP
 		#region Internal Send/Receive functions
 		// These functions will be public until I finish the public API.
 		
-		public void SendCommand(string format, params object[] args)
+		private void SendCommand(string format, params object[] args)
 		{
 			SendCommand(string.Format(format,args));
 		}
 		
-		public void SendCommand(string command)
+		private void SendCommand(string command)
 		{
 			if(!client.Connected)
 				Connect();
@@ -190,7 +191,7 @@ namespace POP
 
 		}
 		
-		public List<string> ReceiveMultiLine()
+		private List<string> ReceiveMultiLine()
 		{
 			var received = new List<string>();
 			
@@ -209,7 +210,7 @@ namespace POP
 			return received;
 		}
 		
-		public string Receive()
+		private string Receive()
 		{
 			if(!Connected)
 				Connect();
@@ -233,7 +234,7 @@ namespace POP
 				if(ex is SocketException || ex is IOException)
 				{
 					InternalClose();
-					throw;
+					//TODO: Fix crash here
 				}
 				else
 					throw;
@@ -332,10 +333,8 @@ namespace POP
 		{
 			return Protocol.CheckHeader(CheckConnection(false));
 		}
-		
 
-
-
+		#region POP Implementation
 		
 		public string Login(string emailAddress, string password)
 		{
@@ -604,5 +603,8 @@ namespace POP
 			
 			return dic;
 		}
+		
+		#endregion
+		
 	}
 }
