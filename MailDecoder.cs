@@ -7,7 +7,7 @@ using Utils;
 
 namespace POP
 {
-	public static class MailDecoder
+	internal static class MailDecoder
 	{
 		/// <summary>
 		/// Translates encoded string into readable ones.

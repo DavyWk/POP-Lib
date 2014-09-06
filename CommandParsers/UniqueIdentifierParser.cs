@@ -4,7 +4,7 @@ using POP;
 
 namespace POP.CommandParsers
 {
-	public static class UniqueIdentifierParser
+	internal static class UniqueIdentifierParser
 	{
 		public static string Parse(string s)
 		{

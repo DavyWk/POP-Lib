@@ -1,6 +1,6 @@
 ﻿namespace POP
 {
-	public static class MailParsingUtils
+	internal static class MailParsingUtils
 	{
 		/// <summary>
 		/// Removes every non-digit character at the end of the string.

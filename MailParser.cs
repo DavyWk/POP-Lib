@@ -9,7 +9,7 @@ namespace POP
 {
 	//TODO: Support MIME format.
 	
-	public class MailParser
+	internal class MailParser
 	{
 		public POPMessage Message { get; private set; }
 		

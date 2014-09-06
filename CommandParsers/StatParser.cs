@@ -4,7 +4,7 @@ using POP;
 
 namespace POP.CommandParsers
 {
-	public static class StatParser
+	internal static class StatParser
 	{
 		public static KeyValuePair<int, int> Parse(string s)
 		{

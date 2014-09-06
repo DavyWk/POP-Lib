@@ -5,7 +5,7 @@ using Utils;
 
 namespace POP.CommandParsers
 {
-    public static class ListParser
+    internal static class ListParser
     {
         public static Dictionary<int, int> Parse(List<string> messageList)
         {
