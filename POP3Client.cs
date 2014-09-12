@@ -166,7 +166,7 @@ namespace POP
 		
 		private void SendCommand(string command)
 		{
-			if(!client.Connected)
+			if(!Connected)
 				Connect();
 			
 			try
