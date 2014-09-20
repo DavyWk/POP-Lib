@@ -277,8 +277,8 @@ namespace POP
 			try
 			{
 				client.Connect(new IPEndPoint(IP, Port));
-				client.ReceiveTimeout  = 10 * 1000;
-				client.SendTimeout = 10 * 1000;
+				client.ReceiveTimeout  = 2 * 1000;
+				client.SendTimeout = 2 * 1000;
 			}
 			catch(SocketException ex)
 			{
@@ -336,6 +336,10 @@ namespace POP
 
 		#region POP Implementation
 		
+		/// <summary>
+		/// Connect to the POP3 server using an email address and a password.
+		/// </summary>
+		/// <returns>Server's response</returns>
 		public string Login(string emailAddress, string password)
 		{
 			if(State != POPState.Authorization)
@@ -364,6 +368,7 @@ namespace POP
 
 			if(Protocol.CheckHeader(response))
 			{
+				// login limit check
 				string check = CheckConnection(false);
 				if(!Protocol.CheckHeader(check))
 					return check;
