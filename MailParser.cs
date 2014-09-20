@@ -60,9 +60,9 @@ namespace POP
 				m.Receivers = new List<Person>();
 				m.Receivers.Add(new Person("ERROR", "ERROR"));
 			}
-			
-			m.ContainsHTML = CheckForHTML();
+				
 			m.Body = GetBody(m.CharSet);
+			m.ContainsHTML = CheckForHTML();
 			
 			Message = m;
 		}
@@ -409,6 +409,7 @@ namespace POP
 			var lBody = new List<string>();
 			var body = string.Empty;
 			int bodyStart = Int32.MaxValue;
+			int lastEmpty;
 			
 			bool contentEncoded = false;
 			if(lines
@@ -418,19 +419,32 @@ namespace POP
 			if(contentEncoded)
 			{
 				bodyStart = lines.IndexOf(string.Empty) + 1;
-				lBody = lines.GetRange(bodyStart, lines.Count - bodyStart);
+				
+				while(lines[bodyStart].StartsWith("--") ||
+				      lines[bodyStart + 1].StartsWith("--"))
+				{
+					bodyStart = lines.IndexOf(string.Empty, bodyStart) + 1;
+				}
+				lastEmpty = lines.IndexOf(string.Empty, bodyStart);
+				// lastEmpty counts ONLY if the next line
+				// is part of the MIME format.
+				if(!(lastEmpty != -1) && (lines[lastEmpty+1].StartsWith("--")))
+					lastEmpty = lines.Count;
+				
+				lBody = lines.GetRange(bodyStart, lastEmpty - bodyStart);
 				string encodedBody = string.Join("", lBody.ToArray());
 				string decodedBody = charset.GetString(
 					Convert.FromBase64String(encodedBody));
 				string[] decodedArray = decodedBody.Split(
-					new string[] { "\r\n" }, 
+					Environment.NewLine.ToCharArray(),
 					StringSplitOptions.RemoveEmptyEntries);
 				
 				// Replaces the encoded ones with the decoded ones
 				lines.RemoveRange(bodyStart, lines.Count - bodyStart);
-				lines.AddRange(decodedArray);
-				lBody = new List<string>();
+				lines.InsertRange(bodyStart, decodedArray);
+				lBody = new List<string>(decodedArray);
 				
+				return string.Join(string.Empty, lBody.ToArray());
 			}
 			
 			int htmlBegin = -1;
@@ -453,7 +467,10 @@ namespace POP
 						htmlBegin = i;
 					
 					if((htmlEnd == -1) && current.StartsWith("</html>"))
+					{
 						htmlEnd = i;
+						break;
+					}
 					
 					// Sometimes lines end with = sign.
 					if(current.EndsWith("="))
