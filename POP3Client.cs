@@ -60,7 +60,10 @@ namespace POP
 			get
 			{
 				if((client != null) && (client.Client != null))
-					return client.Client.Connected;
+				{
+					// NOT RELIABLE
+					return client.Connected;
+				}
 				else
 					return false;
 			}
