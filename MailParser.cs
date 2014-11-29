@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Globalization;
+using System.Linq;
 using System.Text;
+using System.Globalization;
 using System.Collections.Generic;
 
 using Utils;
@@ -13,15 +14,15 @@ namespace POP
 	{
 		public POPMessage Message { get; private set; }
 		
-		private List<string> lines;
+		private readonly List<string> lines;
 		
 		
 		public MailParser(List<string> messageLines)
 		{
 			lines = messageLines;
-			POPMessage m = new POPMessage();
+			var m = new POPMessage();
 			m.Raw = lines;
-			
+
 			foreach(var l in lines)
 			{
 				// Just in case.
@@ -39,8 +40,6 @@ namespace POP
 				// Date MUST be in lowercase
 				else if(lowered.StartsWith("date:"))
 					m.ArrivalTime = GetDate(lowered);
-				else if(lowered.StartsWith("content-type:"))
-					m.CharSet = GetEncoding(trimmed);
 				else if(string.IsNullOrWhiteSpace(trimmed))
 				{
 					int currentLine = lines.IndexOf(l);
@@ -48,11 +47,12 @@ namespace POP
 					break;
 				}
 			}
-						
+
+            m.Body = new MimeParser(lines).GetBody();
+
 			// Some SMTP sever don't send all the fields.
 			m.Subject = MailParsingUtils.CompleteSubject(m.Subject);
-			if(m.CharSet == null)
-				m.CharSet = Encoding.UTF8;
+
 			if(m.ID == string.Empty)
 				m.ID =  "NO ID";
 			if(m.Receivers == null)
@@ -60,8 +60,7 @@ namespace POP
 				m.Receivers = new List<Person>();
 				m.Receivers.Add(new Person("ERROR", "ERROR"));
 			}
-				
-			m.Body = GetBody(m.CharSet);
+
 			m.ContainsHTML = CheckForHTML();
 			
 			Message = m;
@@ -75,7 +74,7 @@ namespace POP
 		
 		private Person GetSender(string s)
 		{
-			Person p = new Person();
+			var  p = new Person();
 			// In case there's something interesting on
 			// the following line.
 			int offset = lines.IndexOf(s); // "From:"
@@ -149,7 +148,7 @@ namespace POP
 			index = 0;
 			
 			// Handles multiple receivers.
-			var nextLine = lines[++offset];
+			string nextLine = lines[++offset];
 			int extraChars = MailDecoder.StartsWith(nextLine);
 			while(extraChars > 0)
 			{
@@ -169,7 +168,7 @@ namespace POP
 
 				if((index = s.IndexOfAny(delimitor, index)) > -1)
 				{
-					Person receiver = new Person();
+					var receiver = new Person();
 					receiver.Name = s.SubstringEx('"', '"', index);
 					
 					if(receiver.Name  != string.Empty)
@@ -373,214 +372,11 @@ namespace POP
 			return dt;
 		}
 		
-		private Encoding GetEncoding(string s)
-		{ // Encoding.UTF8 is the default encoding.
-			
-			string encoding;
-			int index = s.IndexOf("charset=") + 8; // 8: size of charset=
-			
-			if(index == 0)
-				return Encoding.UTF8;
-			
-			encoding = s.SubstringEx('"','"',index);
-			
-			// In case there is no quotation marks.
-			if(encoding == string.Empty)
-				encoding = s.Substring(index, s.Length - index);
-			
-			if(encoding.Contains(";"))
-			{
-				index = encoding.IndexOf(';');
-				encoding = encoding.Substring(0, index);
-			}
-
-			if(s.Contains("charset="))
-				return Encoding.GetEncoding(encoding);
-			else
-				return Encoding.UTF8;
-		}
-		
-		private string GetBody(Encoding charset = null)
-		{
-			// "Compile-time constant".
-			if(charset == null)
-				charset = Encoding.UTF8;
-			
-			var lBody = new List<string>();
-			var body = string.Empty;
-			int bodyStart = Int32.MaxValue;
-			int lastEmpty;
-			
-			bool contentEncoded = false;
-			if(lines
-			   .IndexOf("Content-Transfer-Encoding: base64") != -1)
-				contentEncoded = true;
-			
-			if(contentEncoded)
-			{
-				bodyStart = lines.IndexOf(string.Empty) + 1;
-				
-				while(lines[bodyStart].StartsWith("--") ||
-				      lines[bodyStart + 1].StartsWith("--"))
-				{
-					bodyStart = lines.IndexOf(string.Empty, bodyStart) + 1;
-				}
-				lastEmpty = lines.IndexOf(string.Empty, bodyStart);
-				// lastEmpty counts ONLY if the next line
-				// is part of the MIME format.
-				if(!(lastEmpty != -1) && (lines[lastEmpty+1].StartsWith("--")))
-					lastEmpty = lines.Count;
-				
-				lBody = lines.GetRange(bodyStart, lastEmpty - bodyStart);
-				string encodedBody = string.Join("", lBody.ToArray());
-				string decodedBody = charset.GetString(
-					Convert.FromBase64String(encodedBody));
-				string[] decodedArray = decodedBody.Split(
-					Environment.NewLine.ToCharArray(),
-					StringSplitOptions.RemoveEmptyEntries);
-				
-				// Replaces the encoded ones with the decoded ones
-				lines.RemoveRange(bodyStart, lines.Count - bodyStart);
-				lines.InsertRange(bodyStart, decodedArray);
-				lBody = new List<string>(decodedArray);
-				
-				return string.Join(string.Empty, lBody.ToArray());
-			}
-			
-			int htmlBegin = -1;
-			int htmlEnd = -1;
-			for(int i = 0; i < lines.Count; i++)
-			{
-				string current = lines[i];
-				
-				if((i > bodyStart) && current.StartsWith("Content-Type:")
-				   && (charset == Encoding.UTF8))
-				{
-					charset = GetEncoding(current);
-				}
-				
-				if(i > bodyStart)
-				{
-					if((htmlBegin == -1)
-					   && (current.StartsWith("<html>") ||
-					       current.StartsWithEx("<!DOCTYPE html")))
-						htmlBegin = i;
-					
-					if((htmlEnd == -1) && current.StartsWith("</html>"))
-					{
-						htmlEnd = i;
-						break;
-					}
-					
-					// Sometimes lines end with = sign.
-					if(current.EndsWith("="))
-						current = current.Remove(current.Length - 1 , 1);
-					current = MailDecoder.DecodeSpecialChars(current, charset);
-					
-					// Just in case there is no HTML.
-					lBody.Add(current);
-					
-					lines[i] = current;
-					// If bodyStart is already set, don't need to check again.
-					continue;
-				}
-				
-				// Gets the first empty line (end of the headers).
-				if(string.IsNullOrWhiteSpace(current))
-				{
-					// Skips blank lines
-					
-					int offset = i + 1;
-					while(string.IsNullOrWhiteSpace(lines[offset]))
-						offset++;
-					
-					bodyStart = offset;
-				}
-			}
-			
-			if((htmlBegin != -1) && (htmlBegin < htmlEnd))
-			{
-				lBody = lines.GetRange(htmlBegin, htmlEnd - htmlBegin);
-			}
-
-			
-			// If there is no HTML.
-			if(lBody.Count == 0)
-			{
-				int emptyLine = 0;
-				foreach(var l in lines)
-				{
-					int currentOffset = lines.IndexOf(l);
-					if(emptyLine == 0)
-					{
-						if(string.IsNullOrWhiteSpace(l))
-						{
-							emptyLine = currentOffset + 1;
-							break;
-						}
-					}
-					
-					if(currentOffset > emptyLine)
-					{
-						string current = lines[currentOffset];
-						// Sometimes lines end with = sign.
-						if(current.EndsWith("="))
-							current = current.Remove(current.Length - 1 , 1);
-						current = MailDecoder.DecodeSpecialChars(current,
-						                                         Message.CharSet);
-					}
-				}
-				
-				lBody = lines.GetRange(emptyLine, lines.Count - emptyLine);
-			}
-			
-
-			body = string.Join(string.Empty, lBody.ToArray());
-			
-			return body;
-		}
-		
-		private bool CheckForHTML()
-		{
-			var kv = CheckForHtml();
-			
-			if((kv.Key != -1) && (kv.Value != -1))
-				return true;
-			else
-				return false;
-		}
-		
-		private KeyValuePair<int, int> CheckForHtml()
-		{
-			int begin = Int32.MaxValue;
-			int end =  Int32.MaxValue;
-			
-			for(int i = 0; i < lines.Count; i++)
-			{
-				if((end == Int32.MaxValue) && lines[i].StartsWith("<html>") ||
-				   lines[i].StartsWithEx("<!DOCTYPE html"))
-				{
-					begin = i;
-					continue;
-				}
-				
-				if((begin < i) && lines[i].StartsWith("</html"))
-				{
-					end = i;
-					break;
-				}
-			}
-			
-			// Check for errors.
-			if((begin == Int32.MaxValue) || (end == Int32.MaxValue)
-			   || (begin > end))
-			{
-				begin = -1;
-				end = -1;
-			}
-			
-			return new KeyValuePair<int, int>(begin, end);
-		}
-
+        private bool CheckForHTML()
+        {
+            return (from line in lines
+                    where line.StartsWith("Content-Type: text/html;")
+                    select line).Count<string>() > 0;
+        }
 	}
 }

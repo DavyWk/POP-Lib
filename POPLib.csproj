@@ -48,6 +48,7 @@
     <Compile Include="MailDecoder.cs" />
     <Compile Include="MailParser.cs" />
     <Compile Include="MailParsingUtils.cs" />
+    <Compile Include="MimeParser.cs" />
     <Compile Include="Person.cs" />
     <Compile Include="POP3Client.cs" />
     <Compile Include="POPCommands.cs" />
@@ -57,9 +58,6 @@
     <Compile Include="Protocol.cs" />
     <Compile Include="Utils\Extensions.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="CommandParsers" />
-    <Folder Include="Utils" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
