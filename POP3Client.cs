@@ -160,7 +160,6 @@ namespace POP
 		#endregion
 		
 		#region Internal Send/Receive functions
-		// These functions will be public until I finish the public API.
 		
 		private void SendCommand(string format, params object[] args)
 		{
@@ -459,7 +458,7 @@ namespace POP
 		{
 			var messageList = new List<POPMessage>();
 			
-			foreach(KeyValuePair<int,int> kv in ListMessages())
+			foreach(KeyValuePair<int, int> kv in ListMessages())
 			{
 				POPMessage m = GetMessage(kv.Key);
 				if(m != null)
