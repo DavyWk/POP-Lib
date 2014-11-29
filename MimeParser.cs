@@ -88,17 +88,16 @@ namespace POP
 
             section.RemoveRange(0, space + 1);
 
-            //section.Remove(section[0]); // boundary
-            //section.Remove(section[0]); // type
-            //section.Remove(section[0]); // transfer encoding
-
             // Remove '=' at the end of each line
-            for(int i = 0; i < section.Count; i++)
+            if (encoding != TransferEncoding.Base64)
             {
-                string current = section[i];
+                for (int i = 0; i < section.Count; i++)
+                {
+                    string current = section[i];
 
-                if (current.EndsWith("="))
-                    section[i] = current.Substring(0, current.Length - 1);
+                    if (current.EndsWith("="))
+                        section[i] = current.Substring(0, current.Length - 1);
+                }
             }
 
             MemoryStream ms;
